@@ -120,7 +120,7 @@ public class ConceptGoBildaStarterKitRobotTeleop_IntoTheDeep extends LinearOpMod
 
     /* Variables to store the positions that the wrist should be set to when folding in, or folding out. */
     final double WRIST_FOLDED_IN   = 0.8333;
-    final double WRIST_FOLDED_OUT  = 0.5;
+    final double WRIST_FOLDED_OUT  = 0.4;
 
     /* A number in degrees that the triggers can adjust the arm position by */
     final double FUDGE_FACTOR = 15 * ARM_TICKS_PER_DEGREE;
@@ -141,11 +141,17 @@ public class ConceptGoBildaStarterKitRobotTeleop_IntoTheDeep extends LinearOpMod
         double rotate;
         double max;
 
+        //mototr port 0 = rightDrive.
+        //motor port 1 = leftDrive
+        //motor port 3 = liftMotor
+
+        //servo port 0 = wristServo
+        //servo port 1 = fingerServo
 
         /* Define and Initialize Motors */
-        leftDrive  = hardwareMap.get(DcMotor.class, "left_front_drive"); //the left drivetrain motor
-        rightDrive = hardwareMap.get(DcMotor.class, "right_front_drive"); //the right drivetrain motor
-        armMotor   = hardwareMap.get(DcMotor.class, "left_arm"); //the arm motor
+        leftDrive  = hardwareMap.get(DcMotor.class, "leftDrive"); //the left drivetrain motor
+        rightDrive = hardwareMap.get(DcMotor.class, "rightDrive"); //the right drivetrain motor
+        armMotor   = hardwareMap.get(DcMotor.class, "liftArm"); //the arm motor
 
 
         /* Most skid-steer/differential drive robots require reversing one motor to drive forward.
@@ -175,7 +181,7 @@ public class ConceptGoBildaStarterKitRobotTeleop_IntoTheDeep extends LinearOpMod
 
         /* Define and initialize servos.*/
         intake = hardwareMap.get(CRServo.class, "intake");
-        wrist  = hardwareMap.get(Servo.class, "wrist");
+        wrist  = hardwareMap.get(Servo.class, "wristServo");
 
         /* Make sure that the intake is off, and the wrist is folded in. */
         intake.setPower(INTAKE_OFF);
