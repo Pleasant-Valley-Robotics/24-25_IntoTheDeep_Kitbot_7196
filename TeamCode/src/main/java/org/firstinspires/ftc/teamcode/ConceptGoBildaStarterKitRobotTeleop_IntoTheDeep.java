@@ -22,12 +22,15 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.ServoControllerEx;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 
@@ -76,6 +79,7 @@ public class ConceptGoBildaStarterKitRobotTeleop_IntoTheDeep extends LinearOpMod
     public DcMotor  armMotor    = null; //the arm motor
     public CRServo  intake      = null; //the active intake servo
     public Servo    wrist       = null; //the wrist servo
+    public LynxModule controlHub = null;
 
 
     /* This constant is the number of encoder ticks for each degree of rotation of the arm.
@@ -129,6 +133,14 @@ public class ConceptGoBildaStarterKitRobotTeleop_IntoTheDeep extends LinearOpMod
     /* Variables that are used to set the arm to a specific position */
     double armPosition = (int)ARM_COLLAPSED_INTO_ROBOT;
     double armPositionFudgeFactor;
+    final double batteryCapacity = 3000;  //Storage of battery in mAh
+    double dT; //Time since last loop iteration in seconds
+    double armBatteryConsumption = 0.0;
+    double leftDriveBatteryConsumption = 0.0;
+    double rightDriveBatteryConsumption = 0.0;
+    double totalRobotBatteryConsumption = 0.0;
+    double accessoriesBatteryConsumption = 0.0;
+
 
 
     @Override
@@ -153,7 +165,7 @@ public class ConceptGoBildaStarterKitRobotTeleop_IntoTheDeep extends LinearOpMod
         leftDrive  = hardwareMap.get(DcMotor.class, "leftDrive"); //the left drivetrain motor
         rightDrive = hardwareMap.get(DcMotor.class, "rightDrive"); //the right drivetrain motor
         armMotor   = hardwareMap.get(DcMotor.class, "liftArm"); //the arm motor
-
+        controlHub = ((LynxModule) hardwareMap.get(LynxModule.class, "Control Hub"));//the control hub
 
         /* Most skid-steer/differential drive robots require reversing one motor to drive forward.
         for this robot, we reverse the right motor.*/
@@ -166,7 +178,7 @@ public class ConceptGoBildaStarterKitRobotTeleop_IntoTheDeep extends LinearOpMod
         stops much quicker. */
         leftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         /*This sets the maximum current that the control hub will apply to the arm before throwing a flag */
         ((DcMotorEx) armMotor).setCurrentAlert(5,CurrentUnit.AMPS);
@@ -191,6 +203,9 @@ public class ConceptGoBildaStarterKitRobotTeleop_IntoTheDeep extends LinearOpMod
         /* Send telemetry message to signify robot waiting */
         telemetry.addLine("Robot Ready.");
         telemetry.update();
+
+        //Battery Consumption Math:
+        ElapsedTime timePassed = new ElapsedTime();
 
         /* Wait for the game driver to press play */
         waitForStart();
@@ -358,12 +373,29 @@ public class ConceptGoBildaStarterKitRobotTeleop_IntoTheDeep extends LinearOpMod
                 telemetry.addLine("MOTOR EXCEEDED CURRENT LIMIT!");
             }
 
+            //Battery Consumption Statistics
+            dT = timePassed.time();
+            timePassed.reset();
+            totalRobotBatteryConsumption = totalRobotBatteryConsumption+controlHub.getCurrent(CurrentUnit.MILLIAMPS)*dT/3600;
+            armBatteryConsumption = armBatteryConsumption+((DcMotorEx)armMotor).getCurrent(CurrentUnit.MILLIAMPS)*dT/3600;
+            leftDriveBatteryConsumption = leftDriveBatteryConsumption+((DcMotorEx)leftDrive).getCurrent(CurrentUnit.MILLIAMPS)*dT/3600;
+            rightDriveBatteryConsumption = rightDriveBatteryConsumption+((DcMotorEx)rightDrive).getCurrent(CurrentUnit.MILLIAMPS)*dT/3600;
+            accessoriesBatteryConsumption = accessoriesBatteryConsumption + (totalRobotBatteryConsumption - armBatteryConsumption - leftDriveBatteryConsumption - rightDriveBatteryConsumption)*dT/3600;
+
 
             /* send telemetry to the driver of the arm's current position and target position */
             telemetry.addData("armTarget: ", armMotor.getTargetPosition());
             telemetry.addData("arm Encoder: ", armMotor.getCurrentPosition());
+            telemetry.addData("Arm Current:" , ((DcMotorEx)armMotor).getCurrent(CurrentUnit.AMPS));
+            telemetry.addData("Left Drive Current:", ((DcMotorEx)leftDrive).getCurrent(CurrentUnit.AMPS));
+            telemetry.addData("Right Drive Current:", ((DcMotorEx)rightDrive).getCurrent(CurrentUnit.AMPS));
+            telemetry.addData("dT: ", dT);
+            telemetry.addData("Arm Battery Consumption mAh: ", armBatteryConsumption);
+            telemetry.addData("Left Drive Battery Consumption mAh: ", leftDriveBatteryConsumption);
+            telemetry.addData("Right Drive Battery Consumption mAh: ", rightDriveBatteryConsumption);
+            telemetry.addData("Total Robot Battery Consumption mAh: ", totalRobotBatteryConsumption);
+            telemetry.addData("Accessories Battery Consumption mAh: ", accessoriesBatteryConsumption);
             telemetry.update();
-
         }
     }
 }
