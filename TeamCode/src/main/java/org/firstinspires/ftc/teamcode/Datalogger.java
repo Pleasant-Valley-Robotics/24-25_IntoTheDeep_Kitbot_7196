@@ -2,7 +2,7 @@
 This Datalogger class is provided for FTC OnBot Java (OBJ) programmers.
 
 Most users will not need to edit this class; its methods are called
-from a user's OpMode such as ConceptDatalogger.java or a revised version.
+from a user's OpMode such as BatteryDatalogger.java or a revised version.
 That OpMode specifies and collects data to be logged in a CSV file,
 ready for download and charting.
 

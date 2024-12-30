@@ -22,6 +22,7 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -29,10 +30,11 @@ import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.hardware.ServoControllerEx;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
 /*
  * This OpMode is an example driver-controlled (TeleOp) mode for the goBILDA 2024-2025 FTC
@@ -71,7 +73,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 
 @TeleOp(name="FTC Starter Kit Example Robot (INTO THE DEEP)", group="Robot")
 //@Disabled
-public class ConceptGoBildaStarterKitRobotTeleop_IntoTheDeep extends LinearOpMode {
+public class GoBildaSampleTeleOp extends LinearOpMode {
 
     /* Declare OpMode members. */
     public DcMotor  leftDrive   = null; //the left drivetrain motor
@@ -133,18 +135,23 @@ public class ConceptGoBildaStarterKitRobotTeleop_IntoTheDeep extends LinearOpMod
     /* Variables that are used to set the arm to a specific position */
     double armPosition = (int)ARM_COLLAPSED_INTO_ROBOT;
     double armPositionFudgeFactor;
-    final double batteryCapacity = 3000;  //Storage of battery in mAh
+    public final static double batteryCapacity = 3000;  //Storage of battery in mAh
     double dT; //Time since last loop iteration in seconds
-    double armBatteryConsumption = 0.0;
-    double leftDriveBatteryConsumption = 0.0;
-    double rightDriveBatteryConsumption = 0.0;
-    double totalRobotBatteryConsumption = 0.0;
-    double accessoriesBatteryConsumption = 0.0;
-
-
+    public static double armBatteryConsumption = 0.0;
+    public static double leftDriveBatteryConsumption = 0.0;
+    public static double rightDriveBatteryConsumption = 0.0;
+    public static double totalMotorBatteryConsumption = 0.0;
+    public static double accessoriesBatteryConsumption = 0.0;
+    private BatteryDatalogger.Datalog datalog;
+    private BNO055IMU imu;
+    private VoltageSensor battery;
+    private int loopCounterVar = 1;
 
     @Override
     public void runOpMode() {
+
+        //Rotating servo goes left 30 degrees, right 30 degrees, rests at 180.
+        //Servo open and closing clip starts at 180, goes 90 to the left.
         /*
         These variables are private to the OpMode, and are used to control the drivetrain.
          */
@@ -154,24 +161,17 @@ public class ConceptGoBildaStarterKitRobotTeleop_IntoTheDeep extends LinearOpMod
         double rotate;
         double max;
 
-        //mototr port 0 = rightDrive.
-        //motor port 1 = leftDrive
-        //motor port 3 = liftMotor
-
-        //servo port 0 = wristServo
-        //servo port 1 = fingerServo
-
         /* Define and Initialize Motors */
         leftDrive  = hardwareMap.get(DcMotor.class, "leftDrive"); //the left drivetrain motor
         rightDrive = hardwareMap.get(DcMotor.class, "rightDrive"); //the right drivetrain motor
         armMotor   = hardwareMap.get(DcMotor.class, "liftArm"); //the arm motor
         controlHub = ((LynxModule) hardwareMap.get(LynxModule.class, "Control Hub"));//the control hub
+        battery = hardwareMap.voltageSensor.get("Control Hub");
 
         /* Most skid-steer/differential drive robots require reversing one motor to drive forward.
         for this robot, we reverse the right motor.*/
         leftDrive.setDirection(DcMotor.Direction.FORWARD);
         rightDrive.setDirection(DcMotor.Direction.REVERSE);
-
 
         /* Setting zeroPowerBehavior to BRAKE enables a "brake mode". This causes the motor to slow down
         much faster when it is coasting. This creates a much more controllable drivetrain. As the robot
@@ -183,14 +183,12 @@ public class ConceptGoBildaStarterKitRobotTeleop_IntoTheDeep extends LinearOpMod
         /*This sets the maximum current that the control hub will apply to the arm before throwing a flag */
         ((DcMotorEx) armMotor).setCurrentAlert(5,CurrentUnit.AMPS);
 
-
         /* Before starting the armMotor. We'll make sure the TargetPosition is set to 0.
         Then we'll set the RunMode to RUN_TO_POSITION. And we'll ask it to stop and reset encoder.
         If you do not have the encoder plugged into this motor, it will not run in this code. */
         armMotor.setTargetPosition(0);
         armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         armMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-
 
         /* Define and initialize servos.*/
         intake = hardwareMap.get(CRServo.class, "intake");
@@ -206,6 +204,26 @@ public class ConceptGoBildaStarterKitRobotTeleop_IntoTheDeep extends LinearOpMod
 
         //Battery Consumption Math:
         ElapsedTime timePassed = new ElapsedTime();
+
+        // Get devices from the hardwareMap.
+        // If needed, change "Control Hub" to (e.g.) "Expansion Hub 1".
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+
+        // Initialize the datalog
+        datalog = new BatteryDatalogger.Datalog("datalog_01");
+
+        // You do not need to fill every field of the datalog
+        // every time you call writeLine(); those fields will simply
+        // contain the last value.
+        datalog.opModeStatus.set("INIT");
+        datalog.battery.set(battery.getVoltage());
+        datalog.writeLine();
+
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
+        imu.initialize(parameters);
+
+        telemetry.setMsTransmissionInterval(50);
 
         /* Wait for the game driver to press play */
         waitForStart();
@@ -239,8 +257,6 @@ public class ConceptGoBildaStarterKitRobotTeleop_IntoTheDeep extends LinearOpMod
             leftDrive.setPower(left);
             rightDrive.setPower(right);
 
-
-
             /* Here we handle the three buttons that have direct control of the intake speed.
             These control the continuous rotation servo that pulls elements into the robot,
             If the user presses A, it sets the intake power to the final variable that
@@ -264,8 +280,6 @@ public class ConceptGoBildaStarterKitRobotTeleop_IntoTheDeep extends LinearOpMod
             else if (gamepad2.x) {
                 intake.setPower(INTAKE_DEPOSIT);
             }
-
-
 
             /* Here we implement a set of if else statements to set our arm to different scoring positions.
             We check to see if a specific button is pressed, and then move the arm (and sometimes
@@ -328,7 +342,6 @@ public class ConceptGoBildaStarterKitRobotTeleop_IntoTheDeep extends LinearOpMod
                     wrist.setPosition(WRIST_FOLDED_IN);
             }
 
-
             /* Here we create a "fudge factor" for the arm position.
             This allows you to adjust (or "fudge") the arm position slightly with the gamepad triggers.
             We want the left trigger to move the arm up, and right trigger to move the arm down.
@@ -338,7 +351,6 @@ public class ConceptGoBildaStarterKitRobotTeleop_IntoTheDeep extends LinearOpMod
             The FUDGE_FACTOR is the number of degrees that we can adjust the arm by with this function. */
 
             armPositionFudgeFactor = FUDGE_FACTOR * (gamepad1.right_trigger + (-gamepad1.left_trigger));
-
 
             /* Here we set the target position of our arm to match the variable that was selected
             by the driver.
@@ -376,12 +388,12 @@ public class ConceptGoBildaStarterKitRobotTeleop_IntoTheDeep extends LinearOpMod
             //Battery Consumption Statistics
             dT = timePassed.time();
             timePassed.reset();
-            totalRobotBatteryConsumption = totalRobotBatteryConsumption+controlHub.getCurrent(CurrentUnit.MILLIAMPS)*dT/3600;
+            //Add up the battery usage from the last loop so that the voltage used by the end of the program is accurate.
+            totalMotorBatteryConsumption = totalMotorBatteryConsumption + (armBatteryConsumption + leftDriveBatteryConsumption + rightDriveBatteryConsumption + controlHub.getCurrent(CurrentUnit.MILLIAMPS))*dT/3600;
             armBatteryConsumption = armBatteryConsumption+((DcMotorEx)armMotor).getCurrent(CurrentUnit.MILLIAMPS)*dT/3600;
             leftDriveBatteryConsumption = leftDriveBatteryConsumption+((DcMotorEx)leftDrive).getCurrent(CurrentUnit.MILLIAMPS)*dT/3600;
             rightDriveBatteryConsumption = rightDriveBatteryConsumption+((DcMotorEx)rightDrive).getCurrent(CurrentUnit.MILLIAMPS)*dT/3600;
-            accessoriesBatteryConsumption = accessoriesBatteryConsumption + (totalRobotBatteryConsumption - armBatteryConsumption - leftDriveBatteryConsumption - rightDriveBatteryConsumption)*dT/3600;
-
+            accessoriesBatteryConsumption = accessoriesBatteryConsumption + (totalMotorBatteryConsumption - armBatteryConsumption - leftDriveBatteryConsumption - rightDriveBatteryConsumption)*dT/3600;
 
             /* send telemetry to the driver of the arm's current position and target position */
             telemetry.addData("armTarget: ", armMotor.getTargetPosition());
@@ -393,9 +405,44 @@ public class ConceptGoBildaStarterKitRobotTeleop_IntoTheDeep extends LinearOpMod
             telemetry.addData("Arm Battery Consumption mAh: ", armBatteryConsumption);
             telemetry.addData("Left Drive Battery Consumption mAh: ", leftDriveBatteryConsumption);
             telemetry.addData("Right Drive Battery Consumption mAh: ", rightDriveBatteryConsumption);
-            telemetry.addData("Total Robot Battery Consumption mAh: ", totalRobotBatteryConsumption);
+            telemetry.addData("Total Robot Battery Consumption mAh: ", totalMotorBatteryConsumption);
             telemetry.addData("Accessories Battery Consumption mAh: ", accessoriesBatteryConsumption);
             telemetry.update();
+
+            //Datalogging
+            datalog.opModeStatus.set("RUNNING");
+
+            datalog.loopCounter.set(loopCounterVar);
+            datalog.battery.set(battery.getVoltage());
+
+            datalog.totalMotorBatteryConsumption.set(GoBildaSampleTeleOp.totalMotorBatteryConsumption);
+            datalog.armBatteryConsumption.set(GoBildaSampleTeleOp.armBatteryConsumption);
+            datalog.leftDriveBatteryConsumption.set(GoBildaSampleTeleOp.leftDriveBatteryConsumption);
+            datalog.rightDriveBatteryConsumption.set(GoBildaSampleTeleOp.rightDriveBatteryConsumption);
+            datalog.accessoriesBatteryConsumption.set(GoBildaSampleTeleOp.accessoriesBatteryConsumption);
+            datalog.batteryCapacity.set(GoBildaSampleTeleOp.batteryCapacity);
+
+            // The logged timestamp is taken when writeLine() is called.
+            datalog.writeLine();
+
+            // Datalog fields are stored as text only; do not format here.
+            telemetry.addData("totalMotorBatteryConsumption", datalog.totalMotorBatteryConsumption);
+            telemetry.addData("armBatteryConsumption", datalog.armBatteryConsumption);
+            telemetry.addData("leftDriveBatteryConsumption", datalog.leftDriveBatteryConsumption);
+            telemetry.addData("rightDriveBatteryConsumption", datalog.rightDriveBatteryConsumption);
+            telemetry.addData("accessoriesBatteryConsumption", datalog.accessoriesBatteryConsumption);
+            telemetry.addLine();
+            telemetry.addData("OpMode Status", datalog.opModeStatus);
+            telemetry.addData("Loop Counter", datalog.loopCounter);
+            telemetry.addData("Battery", datalog.battery);
+            telemetry.addData("batteryCapacity", datalog.batteryCapacity);
+
+            telemetry.update();
+
+            sleep(20);
+
+            //Increase by one the amount of times the code has run.
+            loopCounterVar++;
         }
     }
 }
