@@ -16,7 +16,7 @@ Credit to @Windwoes (https://github.com/Windwoes).
 */
 
 
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.Datalogging;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
