@@ -141,6 +141,8 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
     private BNO055IMU imu;
     private VoltageSensor battery;
     private int loopCounterVar = 1;
+    private double openClawPosition = .3;
+    private double closeClawPosition = 0;
 
     @Override
     public void runOpMode() {
@@ -198,7 +200,7 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
 
         /* Make sure that the intake is off, and the wrist is folded in. */
         wrist.setPosition(0);
-        claw.setPosition(0);
+        claw.setPosition(openClawPosition);
 
         /* Send telemetry message to signify robot waiting */
         telemetry.addLine("Robot Ready.");
@@ -263,20 +265,21 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
 
             //Open servo
             if (gamepad2.left_bumper) {
-                claw.setPosition(1);
+                claw.setPosition(0.4);
             }
             //Close servo
             if (gamepad2.right_bumper) {
-                claw.setPosition(0);
+                claw.setPosition(closeClawPosition);
             }
 
-            //Fold claw out to grab sample.
-            if (gamepad2.a) {
-                wrist.setPosition(0.5);
+            //Set arm and clip to score on high rung.
+            if (gamepad2.right_trigger > 0.5) {
+                claw.setPosition(closeClawPosition);
+                autoArmRotate(0.3, 70.0);
             }
-            if (gamepad2.b) {
-                wrist.setPosition(.8);
-            }
+
+            //Set arm to pick up off the wall.
+
 
             /* Check to see if our arm is over the current limit, and report via telemetry. */
             if (((DcMotorEx) armMotor).isOverCurrent()){
@@ -341,6 +344,35 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
 
             //Increase by one the amount of times the code has run.
             loopCounterVar++;
+        }
+    }
+
+    public void autoArmRotate(double speed, double degrees) {
+        int newArmTarget;
+
+        if (opModeIsActive()) {
+            newArmTarget = armMotor.getCurrentPosition() + (int)(degrees * ARM_TICKS_PER_DEGREE);
+
+            armMotor.setTargetPosition(newArmTarget);
+            armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+            armMotor.setPower(Math.abs(speed));
+
+            while (opModeIsActive() &&
+                    (armMotor.isBusy())) {
+
+                // Display it for the driver.
+                telemetry.addData("Running to: ", newArmTarget);
+                telemetry.addData("Currently at: ", armMotor.getCurrentPosition());
+                telemetry.update();
+            }
+
+            armMotor.setPower(0);
+            armMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+            //if (!hold) {
+            //  armMotor.setPower(0);
+            //}
         }
     }
 }
