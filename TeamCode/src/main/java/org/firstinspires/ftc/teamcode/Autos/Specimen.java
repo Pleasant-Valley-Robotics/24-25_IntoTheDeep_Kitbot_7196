@@ -159,12 +159,12 @@ public class Specimen extends LinearOpMode {
         // Step through each leg of the path,
         // Note: Reverse movement is obtained by setting a negative distance (not speed)
         autoArmRotate(0.3, 70.0);
-        encoderDrive(DRIVE_SPEED,  30.0,  30.0, 5.0);  // S1: Forward 47 Inches with 5 Sec timeout
+        encoderDrive(DRIVE_SPEED,  29.5,  29.5, 5.0);  // S1: Forward 47 Inches with 5 Sec timeout
         autoArmRotate(1.0, -20.0);
         claw.setPosition(openClawPosition);
-        encoderDrive(0.3, -20.0, -20.0, 5.0);
-        encoderDrive(DRIVE_SPEED, 15, -15, 4.0);  // S2: Turn Right 12 Inches with 4 Sec timeout
-        encoderDrive(DRIVE_SPEED, 48, 48, 4.0);  // S2: Turn Right 12 Inches with 4 Sec timeout
+        encoderDrive(0.3, -19.5, -19.5, 5.0);
+        encoderDrive(DRIVE_SPEED, 14.5, -14.5, 4.0);  // S2: Turn Right 12 Inches with 4 Sec timeout
+        encoderDrive(DRIVE_SPEED, 47.5, 47.5, 4.0);  // S2: Turn Right 12 Inches with 4 Sec timeout
         //bangTurnToHeading(TURN_SPEED, -90.0);
         //turnToHeading(0.3, 90); //Go 90 to the left
         //turnToHeading(0.3, -90); //Go 90 to the right

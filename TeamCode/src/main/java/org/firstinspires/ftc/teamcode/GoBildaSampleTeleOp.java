@@ -280,10 +280,10 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
                     armMotor.setPower(0.3);
                 }
                 //if over 83 degrees bring arm down.
-                //else arm doesn't need to move or do anything.
                 else if (armMotor.getCurrentPosition() * ARM_TICKS_PER_DEGREE > 83) {
                     armMotor.setPower(-0.3);
                 }
+                //else arm doesn't need to move or do anything.
                 else {}
                 claw.setPosition(closeClawPosition);
                 //teleopArmRotate(0.3, 80.0);
@@ -291,15 +291,32 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
 
             //Bring arm down to score specimen and open clip.
             if (gamepad2.dpad_down) {
+                //if arm's lower than 60 degrees raise it.
                 if (armMotor.getCurrentPosition() * ARM_TICKS_PER_DEGREE < 60) {
                     armMotor.setPower(0.3);
                 }
+                //if arm's higher than 63 degrees bring arm down. 
+                else if (armMotor.getCurrentPosition() * ARM_TICKS_PER_DEGREE > 63) {
+                   armMotor.setPower(-0.3);
+                }
+                //arm doesn't need to do anything.
+                else{}
                 //teleopArmRotate(1.0, 60);
                 claw.setPosition(openClawPosition);
             }
 
             //Set arm to pick up off the wall.
             if (gamepad2.dpad_left) {
+                //if the arm's lower than 35 degrees raise it.
+                if (armMotor.getCurrentPosition() * ARM_TICKS_PER_DEGREE < 35) {
+                    armMotor.setPower(0.3);
+                }
+                //if the arm's higher than 35 degrees lower the arm.
+                else if (armMotor.getCurrentPosition() * ARM_TICKS_PER_DEGREE > 38) {
+                    armMotor.setPower(-0.3);
+                }
+                //Arm doesn't need to do anything.
+                else {}
                 teleopArmRotate(0.3, 35);
             }
 
