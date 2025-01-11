@@ -273,13 +273,35 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
             }
 
             //Set arm and clip to score on high rung.
-            if (gamepad2.right_trigger > 0.5) {
+            if (gamepad2.dpad_up) {
+                //convert the encoder val to a degree value.
+                //If lower than 80 degrees move arm up.
+                if (armMotor.getCurrentPosition() * ARM_TICKS_PER_DEGREE < 80) {
+                    armMotor.setPower(0.3);
+                }
+                //if over 83 degrees bring arm down.
+                //else arm doesn't need to move or do anything.
+                else if (armMotor.getCurrentPosition() * ARM_TICKS_PER_DEGREE > 83) {
+                    armMotor.setPower(-0.3);
+                }
+                else {}
                 claw.setPosition(closeClawPosition);
-                autoArmRotate(0.3, 70.0);
+                //teleopArmRotate(0.3, 80.0);
+            }
+
+            //Bring arm down to score specimen and open clip.
+            if (gamepad2.dpad_down) {
+                if (armMotor.getCurrentPosition() * ARM_TICKS_PER_DEGREE < 60) {
+                    armMotor.setPower(0.3);
+                }
+                //teleopArmRotate(1.0, 60);
+                claw.setPosition(openClawPosition);
             }
 
             //Set arm to pick up off the wall.
-
+            if (gamepad2.dpad_left) {
+                teleopArmRotate(0.3, 35);
+            }
 
             /* Check to see if our arm is over the current limit, and report via telemetry. */
             if (((DcMotorEx) armMotor).isOverCurrent()){
@@ -373,6 +395,31 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
             //if (!hold) {
             //  armMotor.setPower(0);
             //}
+        }
+    }
+
+    public void teleopArmRotate(double speed, double degrees) {
+        int newArmTarget;
+
+        if (opModeIsActive()) {
+            newArmTarget = (int)(degrees * ARM_TICKS_PER_DEGREE);
+
+            armMotor.setTargetPosition(newArmTarget);
+            armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+            armMotor.setPower(Math.abs(speed));
+
+            while (opModeIsActive() &&
+                    (armMotor.isBusy())) {
+
+                // Display it for the driver.
+                telemetry.addData("Running to: ", newArmTarget);
+                telemetry.addData("Currently at: ", armMotor.getCurrentPosition());
+                telemetry.update();
+            }
+
+            armMotor.setPower(0);
+            armMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         }
     }
 }
