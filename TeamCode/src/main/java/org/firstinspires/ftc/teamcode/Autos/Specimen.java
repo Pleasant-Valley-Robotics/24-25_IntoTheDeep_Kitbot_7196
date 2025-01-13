@@ -175,7 +175,7 @@ public class Specimen extends LinearOpMode {
         sleep(1000);  // pause to display final telemetry message.
     }
 
-    public void autoArmRotate(double speed, double degrees) {
+    public void autoArmRotate(double rotSpeed, double degrees) {
         int newArmTarget;
 
         if (opModeIsActive()) {
@@ -184,7 +184,7 @@ public class Specimen extends LinearOpMode {
             armMotor.setTargetPosition(newArmTarget);
             armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-            armMotor.setPower(Math.abs(speed));
+            armMotor.setPower(Math.abs(rotSpeed));
 
             while (opModeIsActive() &&
                     (armMotor.isBusy())) {
@@ -197,10 +197,6 @@ public class Specimen extends LinearOpMode {
 
             armMotor.setPower(0);
             armMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-            //if (!hold) {
-              //  armMotor.setPower(0);
-            //}
         }
     }
 

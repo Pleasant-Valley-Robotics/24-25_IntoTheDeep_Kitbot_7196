@@ -22,6 +22,7 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.bosch.BHI260IMU;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -138,7 +139,7 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
     public static double totalMotorBatteryConsumption = 0.0;
     public static double accessoriesBatteryConsumption = 0.0;
     private BatteryDatalogger.Datalog datalog;
-    private BNO055IMU imu;
+    private BHI260IMU imu;
     private VoltageSensor battery;
     private int loopCounterVar = 1;
     private double openClawPosition = .3;
@@ -211,7 +212,7 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
 
         // Get devices from the hardwareMap.
         // If needed, change "Control Hub" to (e.g.) "Expansion Hub 1".
-        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        imu = hardwareMap.get(BHI260IMU.class, "imu");
 
         // Initialize the datalog
         datalog = new BatteryDatalogger.Datalog("datalog_01");
@@ -223,9 +224,9 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
         datalog.battery.set(battery.getVoltage());
         datalog.writeLine();
 
-        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
-        parameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
-        imu.initialize(parameters);
+        //BHI260IMU.Parameters parameters = new BHI260IMU();
+        //parameters.angleUnit = BHI260IMU.AngleUnit.DEGREES;
+        //imu.initialize(parameters);
 
         telemetry.setMsTransmissionInterval(50);
 
@@ -295,7 +296,7 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
                 if (armMotor.getCurrentPosition() * ARM_TICKS_PER_DEGREE < 60) {
                     armMotor.setPower(0.3);
                 }
-                //if arm's higher than 63 degrees bring arm down. 
+                //if arm's higher than 63 degrees bring arm down.
                 else if (armMotor.getCurrentPosition() * ARM_TICKS_PER_DEGREE > 63) {
                    armMotor.setPower(-0.3);
                 }
