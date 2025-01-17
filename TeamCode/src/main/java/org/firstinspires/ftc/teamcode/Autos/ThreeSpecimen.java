@@ -27,7 +27,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.Autos;
 
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -89,8 +89,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
  *  Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
  */
 
-@Autonomous(name="Robot: Auto Drive By Gyro", group="Robot")
-public class Drivebase extends LinearOpMode {
+@Autonomous(name="Three Specimens", group="Robot")
+public class ThreeSpecimen extends LinearOpMode {
 
     /* Declare OpMode members. */
     private DcMotor leftDrive = null;
@@ -138,7 +138,7 @@ public class Drivebase extends LinearOpMode {
     // Increase these numbers if the heading does not correct strongly enough (eg: a heavy robot or using tracks)
     // Decrease these numbers if the heading does not settle on the correct value (eg: very agile robot with omni wheels)
     static final double P_TURN_GAIN = 0.02; // Larger is more responsive, but also less stable.
-    static final double P_DRIVE_GAIN = 0.06; // Larger is more responsive, but also less stable.
+    static final double P_DRIVE_GAIN = 0.5; // Larger is more responsive, but also less stable.
     public Servo claw = null;
     public Servo wrist = null; //the wrist servo
     private double openClawPosition = .40;
@@ -207,14 +207,43 @@ public class Drivebase extends LinearOpMode {
         //          Add a sleep(2000) after any step to keep the telemetry data visible for review
 
         //Score first specimen.
+        //Was 47.5
         autoArmRotate(1.0, 47.5);
         driveStraight(DRIVE_SPEED, 29.0, 0.0);
         autoArmRotate(1.0, 30.0);
         claw.setPosition(openClawPosition);
+        sleep(250);
+
+        //Was 1000 before.
+        sleep(250);
+
+        //drive to sample.
+        driveStraight(DRIVE_SPEED, -4.0, 0.0);
+        turnToHeading(TURN_SPEED, -90.0);
+        driveStraight(DRIVE_SPEED, 30.0, -90.0);
+        turnToHeading(TURN_SPEED, 0.0);
+
+        //Drift turn until 180 degrees to pick up sample.
+        while (getHeading() > -177.0 + HEADING_THRESHOLD) {
+            leftDrive.setPower(1.0);
+            rightDrive.setPower(-0.2);
+        }
+
+        //drive into obs zone and position arm.
+        turnToHeading(TURN_SPEED, 180.0);
+        claw.setPosition(openClawPosition);
+        autoArmRotate(1.0, 0.0);
+        driveStraight(DRIVE_SPEED, 19.5, 180.0);
+        turnToHeading(TURN_SPEED, 180.0);
+        autoArmRotate(1.0, 0.0);
+        claw.setPosition(closeClawPosition);
         sleep(500);
 
-        getSpecimenAndScore(1.5);
-        getSpecimenAndScore(3.0);
+        moveFromObsToSub(40);
+
+        //Score third specimen.
+        getSpecimenAndScore(38);
+
     }
 
     /*
@@ -227,40 +256,46 @@ public class Drivebase extends LinearOpMode {
     // **********  HIGH Level driving functions.  ********************
 
     public void getSpecimenAndScore(double offset) {
-        moveFromSubToObs();
+        moveFromSubToObs(offset);
         moveFromObsToSub(offset);
     }
 
-    public void moveFromSubToObs() {
+    public void moveFromSubToObs(double offset) {
         //Drive to second specimen(on the wall).
-        driveStraight(DRIVE_SPEED, -12.0, 0.0);
+        driveStraight(DRIVE_SPEED, -13.0, 0.0);
         turnToHeading(TURN_SPEED, -90.0);
-        driveStraight(DRIVE_SPEED, 39.0, -90.0);
+        //Was 39.0.
+        driveStraight(DRIVE_SPEED, offset, -90.0);
         turnToHeading(TURN_SPEED, 180.0);
 
         //Pickup second specimen.
-        autoArmRotate(0.5, 0.0);
-        driveStraight(DRIVE_SPEED, 7.25, 180.0);
-        autoArmRotate(0.5, 0.0);
+        //Was 0.5 speed
+        autoArmRotate(1.0, 0.0);
+        driveStraight(DRIVE_SPEED, 7.00, 180.0);
+        //Was 0.5 speed
+        autoArmRotate(1.0, 0.0);
         claw.setPosition(closeClawPosition);
         sleep(500);
     }
 
     public void moveFromObsToSub(double offset) {
-        autoArmRotate(1.0, 47.5);
+        //Pick up specimen.
+        //Was 47.5
+        autoArmRotate(1.0, 49.0);
 
         //Take specimen away.
-        driveStraight(DRIVE_SPEED, -8.0, 180.0);
+        driveStraight(DRIVE_SPEED, -7.0, 180.0);
         turnToHeading(TURN_SPEED, -90.0);
 
         //Drive over to rung.
-        //Move the -39 to get in line with position for 1st specimen scored. offset to go further.
-        driveStraight(DRIVE_SPEED, -39.0 + offset, -90.0);
+        //Move the -39.0 to get where the 1st specimen was scored. Use offset to go further.
+        //Was -39.0
+        driveStraight(DRIVE_SPEED, -offset, -90.0);
         turnToHeading(TURN_SPEED, 0.0);
-        autoArmRotate(1.0, 47.5);
-        driveStraight(DRIVE_SPEED, 13.0, 0.0);
 
         //Score second specimen.
+        autoArmRotate(1.0, 47.5);
+        driveStraight(DRIVE_SPEED, 13.0, 0.0);
         autoArmRotate(1.0, 30.0);
         claw.setPosition(openClawPosition);
         sleep(500);
@@ -472,6 +507,10 @@ public class Drivebase extends LinearOpMode {
             armMotor.setPower(0);
             armMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         }
+    }
+
+    public void drift() {
+
     }
 
     /**
