@@ -259,10 +259,17 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
                 right /= max;
             }
 
-            /* Set the motor power to the variables we've mixed and normalized */
-            leftDrive.setPower(left);
-            rightDrive.setPower(right);
             armMotor.setPower(armDrive);
+
+            if (gamepad1.right_bumper) {
+                leftDrive.setPower(left / 2.0);
+                rightDrive.setPower(right / 2.0);
+            }
+            else {
+                /* Set the motor power to the variables we've mixed and normalized */
+                leftDrive.setPower(left);
+                rightDrive.setPower(right);
+            }
 
             //Open servo
             if (gamepad2.left_bumper) {
@@ -320,6 +327,8 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
                 else {}
                 teleopArmRotate(0.3, 35);
             }
+
+
 
             /* Check to see if our arm is over the current limit, and report via telemetry. */
             if (((DcMotorEx) armMotor).isOverCurrent()){
