@@ -129,8 +129,8 @@ public class TwoSpecimen extends LinearOpMode {
 
     // These constants define the desired driving/control characteristics
     // They can/should be tweaked to suit the specific robot drive train.
-    static final double DRIVE_SPEED = .50; // Max driving speed for better distance accuracy.
-    static final double TURN_SPEED = .50; // Max turn speed to limit turn rate.
+    static final double DRIVE_SPEED = .75; // Max driving speed for better distance accuracy.
+    static final double TURN_SPEED = .75; // Max turn speed to limit turn rate.
     static final double HEADING_THRESHOLD = 1.0 ; // How close must the heading get to the target before moving to next step.
                                                                // Requiring more accuracy (a smaller number) will often make the turn take longer to get into the final position.
     // Define the Proportional control coefficient (or GAIN) for "heading control".
@@ -215,9 +215,10 @@ public class TwoSpecimen extends LinearOpMode {
         sleep(500);
 
         //Score second specimen.
-        getSpecimenAndScore(36.0);
+        //Was 36.
+        getSpecimenAndScore(46.0);
 
-        moveFromSubToObs(36.0);
+        moveFromSubToObs(44.0);
     }
 
     /*
@@ -245,7 +246,8 @@ public class TwoSpecimen extends LinearOpMode {
         //Pickup second specimen.
         //Was 0.5 speed
         autoArmRotate(1.0, 0.0);
-        driveStraight(DRIVE_SPEED, 6.0, 180.0);
+        //Was 6.0
+        driveStraight(DRIVE_SPEED, 6.3, 180.0);
         //Was 0.5 speed
         autoArmRotate(1.0, 0.0);
         claw.setPosition(closeClawPosition);
@@ -269,7 +271,7 @@ public class TwoSpecimen extends LinearOpMode {
 
         //Score second specimen.
         autoArmRotate(1.0, 47.5);
-        driveStraight(DRIVE_SPEED, 15.25, 0.0);
+        driveStraight(DRIVE_SPEED, 15.0, 0.0);
         autoArmRotate(1.0, 30.0);
         claw.setPosition(openClawPosition);
         sleep(500);

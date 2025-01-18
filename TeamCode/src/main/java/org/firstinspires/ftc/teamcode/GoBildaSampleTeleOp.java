@@ -30,12 +30,16 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.Datalogging.BatteryDatalogger;
+
+import java.util.ArrayList;
 
 /*
  * This OpMode is an example driver-controlled (TeleOp) mode for the goBILDA 2024-2025 FTC
@@ -72,16 +76,17 @@ import org.firstinspires.ftc.teamcode.Datalogging.BatteryDatalogger;
  */
 
 
-@TeleOp(name="FTC Starter Kit Example Robot (INTO THE DEEP)", group="Robot")
+@TeleOp(name = "FTC Starter Kit Example Robot (INTO THE DEEP)", group = "Robot")
 //@Disabled
 public class GoBildaSampleTeleOp extends LinearOpMode {
 
     /* Declare OpMode members. */
-    public DcMotor  leftDrive   = null; //the left drivetrain motor
-    public DcMotor  rightDrive  = null; //the right drivetrain motor
-    public DcMotor  armMotor    = null; //the arm motor
+    public DcMotor leftDrive = null; //the left drivetrain motor
+    public DcMotor rightDrive = null; //the right drivetrain motor
+    public DcMotor armMotor = null; //the arm motor
     public Servo claw = null;
-    public Servo    wrist       = null; //the wrist servo
+    public Servo wrist = null; //the wrist servo
+    public DistanceSensor distanceSensor = null;
     public LynxModule controlHub = null;
 
 
@@ -98,7 +103,7 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
             28 // number of encoder ticks per rotation of the bare motor
                     * 250047.0 / 4913.0 // This is the exact gear ratio of the 50.9:1 Yellow Jacket gearbox
                     * 100.0 / 20.0 // This is the external gear reduction, a 20T pinion gear that drives a 100T hub-mount gear
-                    * 1/360.0; // we want ticks per degree, not per rotation
+                    * 1 / 360.0; // we want ticks per degree, not per rotation
 
 
     /* These constants hold the position that the arm is commanded to run to.
@@ -112,24 +117,24 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
     If you'd like it to move further, increase that number. If you'd like it to not move
     as far from the starting position, decrease it. */
 
-    final double ARM_COLLAPSED_INTO_ROBOT  = 0;
-    final double ARM_COLLECT               = 250 * ARM_TICKS_PER_DEGREE;
-    final double ARM_CLEAR_BARRIER         = 230 * ARM_TICKS_PER_DEGREE;
-    final double ARM_SCORE_SPECIMEN        = 160 * ARM_TICKS_PER_DEGREE;
+    final double ARM_COLLAPSED_INTO_ROBOT = 0;
+    final double ARM_COLLECT = 250 * ARM_TICKS_PER_DEGREE;
+    final double ARM_CLEAR_BARRIER = 230 * ARM_TICKS_PER_DEGREE;
+    final double ARM_SCORE_SPECIMEN = 160 * ARM_TICKS_PER_DEGREE;
     //Was 160 before.
-    final double ARM_SCORE_SAMPLE_IN_LOW   = 140 * ARM_TICKS_PER_DEGREE;
-    final double ARM_ATTACH_HANGING_HOOK   = 120 * ARM_TICKS_PER_DEGREE;
-    final double ARM_WINCH_ROBOT           = 15  * ARM_TICKS_PER_DEGREE;
+    final double ARM_SCORE_SAMPLE_IN_LOW = 140 * ARM_TICKS_PER_DEGREE;
+    final double ARM_ATTACH_HANGING_HOOK = 120 * ARM_TICKS_PER_DEGREE;
+    final double ARM_WINCH_ROBOT = 15 * ARM_TICKS_PER_DEGREE;
 
     /* Variables to store the positions that the wrist should be set to when folding in, or folding out. */
-    final double WRIST_FOLDED_IN   = 0.8333;
-    final double WRIST_FOLDED_OUT  = 0.4;
+    final double WRIST_FOLDED_IN = 0.8333;
+    final double WRIST_FOLDED_OUT = 0.4;
 
     /* A number in degrees that the triggers can adjust the arm position by */
     final double FUDGE_FACTOR = 15 * ARM_TICKS_PER_DEGREE;
 
     /* Variables that are used to set the arm to a specific position */
-    double armPosition = (int)ARM_COLLAPSED_INTO_ROBOT;
+    double armPosition = (int) ARM_COLLAPSED_INTO_ROBOT;
     double armPositionFudgeFactor;
     public final static double batteryCapacity = 3000;  //Storage of battery in mAh
     double dT; //Time since last loop iteration in seconds
@@ -144,6 +149,7 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
     private int loopCounterVar = 1;
     private double openClawPosition = .3;
     private double closeClawPosition = 0;
+    private volatile ArrayList<Double> distanceAverages;
 
     @Override
     public void runOpMode() {
@@ -166,9 +172,9 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
         telemetry.setAutoClear(true);
 
         /* Define and Initialize Motors */
-        leftDrive  = hardwareMap.get(DcMotor.class, "leftDrive"); //the left drivetrain motor
+        leftDrive = hardwareMap.get(DcMotor.class, "leftDrive"); //the left drivetrain motor
         rightDrive = hardwareMap.get(DcMotor.class, "rightDrive"); //the right drivetrain motor
-        armMotor   = hardwareMap.get(DcMotor.class, "liftArm"); //the arm motor
+        armMotor = hardwareMap.get(DcMotor.class, "liftArm"); //the arm motor
         controlHub = ((LynxModule) hardwareMap.get(LynxModule.class, "Control Hub"));//the control hub
         battery = hardwareMap.voltageSensor.get("Control Hub");
 
@@ -186,7 +192,7 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
         armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         /*This sets the maximum current that the control hub will apply to the arm before throwing a flag */
-        ((DcMotorEx) armMotor).setCurrentAlert(5,CurrentUnit.AMPS);
+        ((DcMotorEx) armMotor).setCurrentAlert(5, CurrentUnit.AMPS);
 
         /* Before starting the armMotor. We'll make sure the TargetPosition is set to 0.
         Then we'll set the RunMode to RUN_TO_POSITION. And we'll ask it to stop and reset encoder.
@@ -197,7 +203,8 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
 
         /* Define and initialize servos.*/
         claw = hardwareMap.get(Servo.class, "claw");
-        wrist  = hardwareMap.get(Servo.class, "wrist");
+        wrist = hardwareMap.get(Servo.class, "wrist");
+        distanceSensor = hardwareMap.get(DistanceSensor.class, "distanceSensor");
 
         /* Make sure that the intake is off, and the wrist is folded in. */
         wrist.setPosition(0);
@@ -233,13 +240,19 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
         /* Wait for the game driver to press play */
         waitForStart();
 
+        distanceAverages = new ArrayList<>(10);
+
+        for (int i = 0; i < 10; i++) {
+            distanceAverages.add(0.0);
+        }
+
         /* Run until the driver presses stop */
         while (opModeIsActive()) {
 
             /* Set the drive and turn variables to follow the joysticks on the gamepad.
             the joysticks decrease as you push them up. So reverse the Y axis. */
             forward = -gamepad1.left_stick_y;
-            rotate  = gamepad1.right_stick_x;
+            rotate = gamepad1.right_stick_x;
             armDrive = -gamepad2.right_stick_y;
             
             /* Here we "mix" the input channels together to find the power to apply to each motor.
@@ -248,13 +261,12 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
             the right and left motors need to move in opposite directions. So we will add rotate to
             forward for the left motor, and subtract rotate from forward for the right motor. */
 
-            left  = forward + rotate;
+            left = forward + rotate;
             right = forward - rotate;
 
             /* Normalize the values so neither exceed +/- 1.0 */
             max = Math.max(Math.abs(left), Math.abs(right));
-            if (max > 1.0)
-            {
+            if (max > 1.0) {
                 left /= max;
                 right /= max;
             }
@@ -264,8 +276,7 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
             if (gamepad1.right_bumper) {
                 leftDrive.setPower(left / 2.0);
                 rightDrive.setPower(right / 2.0);
-            }
-            else {
+            } else {
                 /* Set the motor power to the variables we've mixed and normalized */
                 leftDrive.setPower(left);
                 rightDrive.setPower(right);
@@ -292,7 +303,8 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
                     armMotor.setPower(-0.3);
                 }
                 //else arm doesn't need to move or do anything.
-                else {}
+                else {
+                }
                 claw.setPosition(closeClawPosition);
                 //teleopArmRotate(0.3, 80.0);
             }
@@ -305,10 +317,11 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
                 }
                 //if arm's higher than 63 degrees bring arm down.
                 else if (armMotor.getCurrentPosition() * ARM_TICKS_PER_DEGREE > 63) {
-                   armMotor.setPower(-0.3);
+                    armMotor.setPower(-0.3);
                 }
                 //arm doesn't need to do anything.
-                else{}
+                else {
+                }
                 //teleopArmRotate(1.0, 60);
                 claw.setPosition(openClawPosition);
             }
@@ -324,14 +337,25 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
                     armMotor.setPower(-0.3);
                 }
                 //Arm doesn't need to do anything.
-                else {}
-                teleopArmRotate(0.3, 35);
+                else {
+                }
+                teleopArmRotate(0.3, 35.0);
             }
 
+            distanceAverages.add(distanceSensor.getDistance(DistanceUnit.INCH));
+            distanceAverages.remove(0);
 
+            double sum = 0.0;
+            for (double num : distanceAverages) {
+                sum += num;
+            }
+            double avg = sum / (double) distanceAverages.size();
+
+            telemetry.addData("distanceSensorArraylist: ", distanceAverages.toString());
+            telemetry.addData("distanceSensorAvg: ", avg);
 
             /* Check to see if our arm is over the current limit, and report via telemetry. */
-            if (((DcMotorEx) armMotor).isOverCurrent()){
+            if (((DcMotorEx) armMotor).isOverCurrent()) {
                 telemetry.addLine("MOTOR EXCEEDED CURRENT LIMIT!");
             }
 
@@ -339,25 +363,24 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
             dT = timePassed.time();
             timePassed.reset();
             //Add up the battery usage from the last loop so that the voltage used by the end of the program is accurate.
-            totalMotorBatteryConsumption = totalMotorBatteryConsumption + (armBatteryConsumption + leftDriveBatteryConsumption + rightDriveBatteryConsumption + controlHub.getCurrent(CurrentUnit.MILLIAMPS))*dT/3600;
-            armBatteryConsumption = armBatteryConsumption+((DcMotorEx)armMotor).getCurrent(CurrentUnit.MILLIAMPS)*dT/3600;
-            leftDriveBatteryConsumption = leftDriveBatteryConsumption+((DcMotorEx)leftDrive).getCurrent(CurrentUnit.MILLIAMPS)*dT/3600;
-            rightDriveBatteryConsumption = rightDriveBatteryConsumption+((DcMotorEx)rightDrive).getCurrent(CurrentUnit.MILLIAMPS)*dT/3600;
-            accessoriesBatteryConsumption = accessoriesBatteryConsumption + (totalMotorBatteryConsumption - armBatteryConsumption - leftDriveBatteryConsumption - rightDriveBatteryConsumption)*dT/3600;
+            totalMotorBatteryConsumption = totalMotorBatteryConsumption + (armBatteryConsumption + leftDriveBatteryConsumption + rightDriveBatteryConsumption + controlHub.getCurrent(CurrentUnit.MILLIAMPS)) * dT / 3600;
+            armBatteryConsumption = armBatteryConsumption + ((DcMotorEx) armMotor).getCurrent(CurrentUnit.MILLIAMPS) * dT / 3600;
+            leftDriveBatteryConsumption = leftDriveBatteryConsumption + ((DcMotorEx) leftDrive).getCurrent(CurrentUnit.MILLIAMPS) * dT / 3600;
+            rightDriveBatteryConsumption = rightDriveBatteryConsumption + ((DcMotorEx) rightDrive).getCurrent(CurrentUnit.MILLIAMPS) * dT / 3600;
+            accessoriesBatteryConsumption = accessoriesBatteryConsumption + (totalMotorBatteryConsumption - armBatteryConsumption - leftDriveBatteryConsumption - rightDriveBatteryConsumption) * dT / 3600;
 
             /* send telemetry to the driver of the arm's current position and target position */
             telemetry.addData("armTarget: ", armMotor.getTargetPosition());
             telemetry.addData("arm Encoder: ", armMotor.getCurrentPosition());
-            telemetry.addData("Arm Current:" , ((DcMotorEx)armMotor).getCurrent(CurrentUnit.AMPS));
-            telemetry.addData("Left Drive Current:", ((DcMotorEx)leftDrive).getCurrent(CurrentUnit.AMPS));
-            telemetry.addData("Right Drive Current:", ((DcMotorEx)rightDrive).getCurrent(CurrentUnit.AMPS));
+            telemetry.addData("Arm Current:", ((DcMotorEx) armMotor).getCurrent(CurrentUnit.AMPS));
+            telemetry.addData("Left Drive Current:", ((DcMotorEx) leftDrive).getCurrent(CurrentUnit.AMPS));
+            telemetry.addData("Right Drive Current:", ((DcMotorEx) rightDrive).getCurrent(CurrentUnit.AMPS));
             telemetry.addData("dT: ", dT);
             telemetry.addData("Arm Battery Consumption mAh: ", armBatteryConsumption);
             telemetry.addData("Left Drive Battery Consumption mAh: ", leftDriveBatteryConsumption);
             telemetry.addData("Right Drive Battery Consumption mAh: ", rightDriveBatteryConsumption);
             telemetry.addData("Total Robot Battery Consumption mAh: ", totalMotorBatteryConsumption);
             telemetry.addData("Accessories Battery Consumption mAh: ", accessoriesBatteryConsumption);
-            telemetry.update();
 
             //Datalogging
             datalog.opModeStatus.set("RUNNING");
@@ -400,7 +423,7 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
         int newArmTarget;
 
         if (opModeIsActive()) {
-            newArmTarget = armMotor.getCurrentPosition() + (int)(degrees * ARM_TICKS_PER_DEGREE);
+            newArmTarget = armMotor.getCurrentPosition() + (int) (degrees * ARM_TICKS_PER_DEGREE);
 
             armMotor.setTargetPosition(newArmTarget);
             armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -429,7 +452,7 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
         int newArmTarget;
 
         if (opModeIsActive()) {
-            newArmTarget = (int)(degrees * ARM_TICKS_PER_DEGREE);
+            newArmTarget = (int) (degrees * ARM_TICKS_PER_DEGREE);
 
             armMotor.setTargetPosition(newArmTarget);
             armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
