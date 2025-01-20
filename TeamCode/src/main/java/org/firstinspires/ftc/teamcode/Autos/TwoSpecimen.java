@@ -33,13 +33,17 @@ import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+
+import java.util.ArrayList;
 
 /*
  *  This OpMode illustrates the concept of driving an autonomous path based on Gyro (IMU) heading and encoder counts.
@@ -141,6 +145,9 @@ public class TwoSpecimen extends LinearOpMode {
     static final double P_DRIVE_GAIN = 0.04; // Larger is more responsive, but also less stable.
     public Servo claw = null;
     public Servo wrist = null; //the wrist servo
+    public DistanceSensor distanceSensor = null;
+    private volatile ArrayList<Double> distanceAverages;
+    double avg = 0.0;
     private double openClawPosition = .40;
     private double closeClawPosition = 0;
 
@@ -151,6 +158,7 @@ public class TwoSpecimen extends LinearOpMode {
         leftDrive  = hardwareMap.get(DcMotor.class, "leftDrive");
         rightDrive = hardwareMap.get(DcMotor.class, "rightDrive");
         armMotor   = hardwareMap.get(DcMotor.class, "liftArm"); //the arm motor
+        distanceSensor = hardwareMap.get(DistanceSensor.class, "distanceSensor");
 
         claw = hardwareMap.get(Servo.class, "claw");
         wrist  = hardwareMap.get(Servo.class, "wrist");
@@ -201,24 +209,58 @@ public class TwoSpecimen extends LinearOpMode {
 
         imu.resetYaw();
 
-        // Step through each leg of the path,
-        // Notes:   Reverse movement is obtained by setting a negative distance (not speed)
-        //          holdHeading() is used after turns to let the heading stabilize
-        //          Add a sleep(2000) after any step to keep the telemetry data visible for review
+        distanceAverages = new ArrayList<>(10);
+
+        for (int i = 0; i < 10; i++) {
+            distanceAverages.add(0.0);
+        }
+
+        driveToDistanceSensor(0.3, 12.0);
 
         //Score first specimen.
-        //Was 47.5
         autoArmRotate(1.0, 47.5);
         driveStraight(DRIVE_SPEED, 29.0, 0.0);
         autoArmRotate(1.0, 30.0);
         claw.setPosition(openClawPosition);
         sleep(500);
 
+        //Drive to second specimen(on the wall).
+        driveStraight(DRIVE_SPEED, -13.0, 0.0);
+        turnToHeading(TURN_SPEED, -90.0);
+        driveStraight(DRIVE_SPEED, 46.0, -90.0); //Replace with distance sensor logic.
+        turnToHeading(TURN_SPEED, 180.0);
+
+        //Pickup second specimen.
+        autoArmRotate(1.0, 0.0);
+        driveStraight(DRIVE_SPEED, 6.3, 180.0); //Replace with distance sensor logic.
+        autoArmRotate(1.0, 0.0);
+        claw.setPosition(closeClawPosition);
+        sleep(500);
+
+        //Pick up specimen.
+        autoArmRotate(1.0, 49.0);
+
+        //Take specimen away.
+        driveStraight(DRIVE_SPEED, -6.0, 180.0); //Replace with distance sensor logic.
+        turnToHeading(TURN_SPEED, -90.0);
+
+        //Drive over to rung.
+        //Move the -offset to get where the 1st specimen was scored. +2.0 to be 2 inches to the right.
+        driveStraight(DRIVE_SPEED, -44.0 + 2.0, -90.0);
+        turnToHeading(TURN_SPEED, 0.0);
+
+        //Score second specimen.
+        autoArmRotate(1.0, 47.5);
+        driveStraight(DRIVE_SPEED, 15.0, 0.0);
+        autoArmRotate(1.0, 30.0);
+        claw.setPosition(openClawPosition);
+        sleep(500);
+
         //Score second specimen.
         //Was 36.
-        getSpecimenAndScore(46.0);
+        //getSpecimenAndScore(46.0);
 
-        moveFromSubToObs(44.0);
+        //moveFromSubToObs(44.0);
     }
 
     /*
@@ -239,16 +281,12 @@ public class TwoSpecimen extends LinearOpMode {
         //Drive to second specimen(on the wall).
         driveStraight(DRIVE_SPEED, -13.0, 0.0);
         turnToHeading(TURN_SPEED, -90.0);
-        //Was 39.0.
         driveStraight(DRIVE_SPEED, offset, -90.0);
         turnToHeading(TURN_SPEED, 180.0);
 
         //Pickup second specimen.
-        //Was 0.5 speed
         autoArmRotate(1.0, 0.0);
-        //Was 6.0
-        driveStraight(DRIVE_SPEED, 6.3, 180.0);
-        //Was 0.5 speed
+        driveStraight(DRIVE_SPEED, 6.3, 180.0); //Replace with distance sensor logic.
         autoArmRotate(1.0, 0.0);
         claw.setPosition(closeClawPosition);
         sleep(500);
@@ -256,7 +294,6 @@ public class TwoSpecimen extends LinearOpMode {
 
     public void moveFromObsToSub(double offset) {
         //Pick up specimen.
-        //Was 47.5
         autoArmRotate(1.0, 49.0);
 
         //Take specimen away.
@@ -264,8 +301,7 @@ public class TwoSpecimen extends LinearOpMode {
         turnToHeading(TURN_SPEED, -90.0);
 
         //Drive over to rung.
-        //Move the -39.0 to get where the 1st specimen was scored. Use offset to go further.
-        //Was -39.0
+        //Move the -offset to get where the 1st specimen was scored. +2.0 to be 2 inches to the right.
         driveStraight(DRIVE_SPEED, -offset + 2.0, -90.0);
         turnToHeading(TURN_SPEED, 0.0);
 
@@ -275,6 +311,40 @@ public class TwoSpecimen extends LinearOpMode {
         autoArmRotate(1.0, 30.0);
         claw.setPosition(openClawPosition);
         sleep(500);
+    }
+
+    /**
+     * Drives at given power until you reach your target using distance sensor.
+     * @param speed
+     * @param distance
+     */
+    public void driveToDistanceSensor(double speed, double distance) {
+        //Fill 1st 9 most recent values.
+        for (int i = 0; i < 9; i++) {
+            distanceAverages.add(distanceSensor.getDistance(DistanceUnit.INCH)); //Grab new distance away from object/target.
+            distanceAverages.remove(0); //Remove the last position/distance.
+        }
+
+        while (avg < distance - 0.1 || avg > distance + 0.1) {
+            distanceAverages.add(distanceSensor.getDistance(DistanceUnit.INCH)); //Grab most recent distance away from object/target.
+            distanceAverages.remove(0); //Remove the last position/distance.
+
+            double sum = 0.0;
+            for (double num : distanceAverages) {
+                sum += num;
+            }
+            avg = sum / (double) distanceAverages.size();
+
+            leftDrive.setPower(speed);
+            rightDrive.setPower(speed);
+
+            telemetry.addData("avg: ", avg);
+            telemetry.addData("distanceList: ", distanceAverages.toString());
+            telemetry.update();
+        }
+
+        leftDrive.setPower(0.0);
+        rightDrive.setPower(0.0);
     }
 
     /**
