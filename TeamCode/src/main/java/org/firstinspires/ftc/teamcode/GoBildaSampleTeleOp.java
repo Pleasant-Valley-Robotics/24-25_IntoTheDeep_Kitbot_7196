@@ -207,7 +207,7 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
         distanceSensor = hardwareMap.get(DistanceSensor.class, "distanceSensor");
 
         /* Make sure that the intake is off, and the wrist is folded in. */
-        wrist.setPosition(0);
+        wrist.setPosition(0.5);
         claw.setPosition(openClawPosition);
 
         /* Send telemetry message to signify robot waiting */
@@ -291,6 +291,14 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
                 claw.setPosition(closeClawPosition);
             }
 
+            if (gamepad2.right_trigger > 0.50) {
+                wrist.setPosition(0.5);
+            }
+
+            if (gamepad2.left_trigger > 0.50) {
+                wrist.setPosition(0.15);
+            }
+
             //Set arm and clip to score on high rung.
             if (gamepad2.dpad_up) {
                 //convert the encoder val to a degree value.
@@ -352,7 +360,7 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
             double avg = sum / (double) distanceAverages.size();
 
             telemetry.addData("distanceSensorArraylist: ", distanceAverages.toString());
-            telemetry.addData("distanceSensorAvg: ", avg);
+            telemetry.addData("distanceSensor: ", distanceSensor.getDistance(DistanceUnit.INCH));
 
             /* Check to see if our arm is over the current limit, and report via telemetry. */
             if (((DcMotorEx) armMotor).isOverCurrent()) {

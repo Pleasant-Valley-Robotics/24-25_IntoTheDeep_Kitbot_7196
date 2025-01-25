@@ -29,6 +29,7 @@
 
 package org.firstinspires.ftc.teamcode.Autos;
 
+import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -44,6 +45,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /*
  *  This OpMode illustrates the concept of driving an autonomous path based on Gyro (IMU) heading and encoder counts.
@@ -150,15 +152,20 @@ public class TwoSpecimen extends LinearOpMode {
     double avg = 0.0;
     private double openClawPosition = .40;
     private double closeClawPosition = 0;
+    private double newDist = 0.0;
 
     @Override
     public void runOpMode() {
-
         // Initialize the drive system variables.
         leftDrive  = hardwareMap.get(DcMotor.class, "leftDrive");
         rightDrive = hardwareMap.get(DcMotor.class, "rightDrive");
         armMotor   = hardwareMap.get(DcMotor.class, "liftArm"); //the arm motor
         distanceSensor = hardwareMap.get(DistanceSensor.class, "distanceSensor");
+        List<LynxModule> allHubs = hardwareMap.getAll(LynxModule.class);
+
+        for (LynxModule hub : allHubs) {
+            hub.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
+        }
 
         claw = hardwareMap.get(Servo.class, "claw");
         wrist  = hardwareMap.get(Servo.class, "wrist");
@@ -193,14 +200,8 @@ public class TwoSpecimen extends LinearOpMode {
         rightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        wrist.setPosition(0);
+        wrist.setPosition(0.5);
         claw.setPosition(closeClawPosition);
-
-        // Wait for the game to start (Display Gyro value while waiting)
-        while (opModeInInit()) {
-            telemetry.addData(">", "Robot Heading = %4.0f", getHeading());
-            telemetry.update();
-        }
 
         // Set the encoders for closed loop speed control, and reset the heading.
         leftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -209,14 +210,31 @@ public class TwoSpecimen extends LinearOpMode {
 
         imu.resetYaw();
 
+        telemetry.addData("Cur Heading: ", getHeading());
+        telemetry.update();
+
+        waitForStart();
+
         distanceAverages = new ArrayList<>(10);
 
         for (int i = 0; i < 10; i++) {
             distanceAverages.add(0.0);
         }
 
-        driveToDistanceSensor(0.3, 12.0);
+        //Purely for testing.
+        autoArmRotate(1.0, 0.0);
+        //(Where the robot's supposed to stop (value from distance sensor) - where robot currently is according to distance sensor) * Encoders to inches conversion.
+        newDist = distanceSensor.getDistance(DistanceUnit.INCH) - 2.4;
+        //error = where the robot thinks it is in inches vs. where it should be according to the distance sensor.
+        telemetry.addData("new distance to run: ", newDist);
+        telemetry.update();
+        //pause to see telemetry.
+        sleep(1000);
+        driveStraight(0.1, newDist, 180.0);
+        autoArmRotate(1.0, 0.0);
+        claw.setPosition(closeClawPosition);
 
+        /*
         //Score first specimen.
         autoArmRotate(1.0, 47.5);
         driveStraight(DRIVE_SPEED, 29.0, 0.0);
@@ -232,7 +250,14 @@ public class TwoSpecimen extends LinearOpMode {
 
         //Pickup second specimen.
         autoArmRotate(1.0, 0.0);
-        driveStraight(DRIVE_SPEED, 6.3, 180.0); //Replace with distance sensor logic.
+        //(Where the robot's supposed to stop (value from distance sensor) - where robot currently is according to distance sensor) * Encoders to inches conversion.
+        newDist = distanceSensor.getDistance(DistanceUnit.INCH) - 2.4;
+        //error = where the robot thinks it is in inches vs. where it should be according to the distance sensor.
+        telemetry.addData("new distance to run: ", newDist);
+        telemetry.update();
+        //pause to see telemetry.
+        sleep(1000);
+        driveStraight(0.1, newDist, 180.0);
         autoArmRotate(1.0, 0.0);
         claw.setPosition(closeClawPosition);
         sleep(500);
@@ -261,6 +286,7 @@ public class TwoSpecimen extends LinearOpMode {
         //getSpecimenAndScore(46.0);
 
         //moveFromSubToObs(44.0);
+         */
     }
 
     /*
