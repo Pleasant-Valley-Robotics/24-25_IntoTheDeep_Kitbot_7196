@@ -240,11 +240,11 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
         /* Wait for the game driver to press play */
         waitForStart();
 
-        distanceAverages = new ArrayList<>(10);
+        //distanceAverages = new ArrayList<>(10);
 
-        for (int i = 0; i < 10; i++) {
-            distanceAverages.add(0.0);
-        }
+        //for (int i = 0; i < 10; i++) {
+            //distanceAverages.add(0.0);
+        //}
 
         /* Run until the driver presses stop */
         while (opModeIsActive()) {
@@ -350,16 +350,16 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
                 teleopArmRotate(0.3, 35.0);
             }
 
-            distanceAverages.add(distanceSensor.getDistance(DistanceUnit.INCH));
-            distanceAverages.remove(0);
+            //distanceAverages.add(distanceSensor.getDistance(DistanceUnit.INCH));
+            //distanceAverages.remove(0);
 
-            double sum = 0.0;
-            for (double num : distanceAverages) {
-                sum += num;
-            }
-            double avg = sum / (double) distanceAverages.size();
+            //double sum = 0.0;
+            //for (double num : distanceAverages) {
+                //sum += num;
+            //}
+            //double avg = sum / (double) distanceAverages.size();
 
-            telemetry.addData("distanceSensorArraylist: ", distanceAverages.toString());
+            //telemetry.addData("distanceSensorArraylist: ", distanceAverages.toString());
             telemetry.addData("distanceSensor: ", distanceSensor.getDistance(DistanceUnit.INCH));
 
             /* Check to see if our arm is over the current limit, and report via telemetry. */

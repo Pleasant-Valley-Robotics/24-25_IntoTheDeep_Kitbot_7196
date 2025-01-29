@@ -150,9 +150,9 @@ public class TwoSpecimen extends LinearOpMode {
     public DistanceSensor distanceSensor = null;
     private volatile ArrayList<Double> distanceAverages;
     double avg = 0.0;
-    private double openClawPosition = .40;
+    private double openClawPosition = .20;
     private double closeClawPosition = 0;
-    private double newDist = 0.0;
+    private double newDist;
 
     @Override
     public void runOpMode() {
@@ -203,6 +203,12 @@ public class TwoSpecimen extends LinearOpMode {
         wrist.setPosition(0.5);
         claw.setPosition(closeClawPosition);
 
+        // Wait for the game to start (Display Gyro value while waiting)
+        while (opModeInInit()) {
+            telemetry.addData(">", "Robot Heading = %4.0f", getHeading());
+            telemetry.update();
+        }
+
         // Set the encoders for closed loop speed control, and reset the heading.
         leftDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rightDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -213,29 +219,23 @@ public class TwoSpecimen extends LinearOpMode {
         telemetry.addData("Cur Heading: ", getHeading());
         telemetry.update();
 
-        waitForStart();
+        //distanceAverages = new ArrayList<>(10);
 
-        distanceAverages = new ArrayList<>(10);
+        //for (int i = 0; i < 10; i++) {
+            //distanceAverages.add(0.0);
+        //}
 
-        for (int i = 0; i < 10; i++) {
-            distanceAverages.add(0.0);
-        }
+        //distanceAverages.add(distanceSensor.getDistance(DistanceUnit.INCH));
+        //distanceAverages.remove(0);
 
-        //Purely for testing.
-        autoArmRotate(1.0, 0.0);
-        //(Where the robot's supposed to stop (value from distance sensor) - where robot currently is according to distance sensor) * Encoders to inches conversion.
-        newDist = distanceSensor.getDistance(DistanceUnit.INCH) - 2.4;
-        //error = where the robot thinks it is in inches vs. where it should be according to the distance sensor.
-        telemetry.addData("new distance to run: ", newDist);
-        telemetry.update();
-        //pause to see telemetry.
-        sleep(1000);
-        driveStraight(0.1, newDist, 180.0);
-        autoArmRotate(1.0, 0.0);
-        claw.setPosition(closeClawPosition);
+        //double sum = 0.0;
+        //for (double num : distanceAverages) {
+        //sum += num;
+        //}
+        //double avg = sum / (double) distanceAverages.size();
 
-        /*
         //Score first specimen.
+        sleep(250);
         autoArmRotate(1.0, 47.5);
         driveStraight(DRIVE_SPEED, 29.0, 0.0);
         autoArmRotate(1.0, 30.0);
@@ -249,15 +249,19 @@ public class TwoSpecimen extends LinearOpMode {
         turnToHeading(TURN_SPEED, 180.0);
 
         //Pickup second specimen.
+        claw.setPosition(openClawPosition);
+        sleep(500);
+        autoArmRotate(1.0, 0.0);
+        driveStraight(DRIVE_SPEED, 3.0, 180.0);
         autoArmRotate(1.0, 0.0);
         //(Where the robot's supposed to stop (value from distance sensor) - where robot currently is according to distance sensor) * Encoders to inches conversion.
-        newDist = distanceSensor.getDistance(DistanceUnit.INCH) - 2.4;
+        newDist = distanceSensor.getDistance(DistanceUnit.INCH) - 3.0;
         //error = where the robot thinks it is in inches vs. where it should be according to the distance sensor.
         telemetry.addData("new distance to run: ", newDist);
         telemetry.update();
         //pause to see telemetry.
         sleep(1000);
-        driveStraight(0.1, newDist, 180.0);
+        driveStraight(0.5, newDist, 180.0);
         autoArmRotate(1.0, 0.0);
         claw.setPosition(closeClawPosition);
         sleep(500);
@@ -286,7 +290,6 @@ public class TwoSpecimen extends LinearOpMode {
         //getSpecimenAndScore(46.0);
 
         //moveFromSubToObs(44.0);
-         */
     }
 
     /*
