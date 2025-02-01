@@ -185,7 +185,7 @@ public class TwoSpecimen extends LinearOpMode {
         rightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        wrist.setPosition(0);
+        wrist.setPosition(0.5);
         claw.setPosition(closeClawPosition);
 
         // Wait for the game to start (Display Gyro value while waiting)

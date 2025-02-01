@@ -345,14 +345,14 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
             distanceAverages.add(distanceSensor.getDistance(DistanceUnit.INCH));
             distanceAverages.remove(0);
 
-            double sum = 0.0;
-            for (double num : distanceAverages) {
-                sum += num;
-            }
-            double avg = sum / (double) distanceAverages.size();
+            //double sum = 0.0;
+            //for (double num : distanceAverages) {
+               // sum += num;
+            //}
+            //double avg = sum / (double) distanceAverages.size();
 
-            telemetry.addData("distanceSensorArraylist: ", distanceAverages.toString());
-            telemetry.addData("distanceSensorAvg: ", avg);
+           // telemetry.addData("distanceSensorArraylist: ", distanceAverages.toString());
+           // telemetry.addData("distanceSensorAvg: ", avg);
 
             /* Check to see if our arm is over the current limit, and report via telemetry. */
             if (((DcMotorEx) armMotor).isOverCurrent()) {
@@ -360,6 +360,7 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
             }
 
             //Battery Consumption Statistics
+            /*
             dT = timePassed.time();
             timePassed.reset();
             //Add up the battery usage from the last loop so that the voltage used by the end of the program is accurate.
@@ -369,7 +370,8 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
             rightDriveBatteryConsumption = rightDriveBatteryConsumption + ((DcMotorEx) rightDrive).getCurrent(CurrentUnit.MILLIAMPS) * dT / 3600;
             accessoriesBatteryConsumption = accessoriesBatteryConsumption + (totalMotorBatteryConsumption - armBatteryConsumption - leftDriveBatteryConsumption - rightDriveBatteryConsumption) * dT / 3600;
 
-            /* send telemetry to the driver of the arm's current position and target position */
+            /*send telemetry to the driver of the arm's current position and target position */
+            /*
             telemetry.addData("armTarget: ", armMotor.getTargetPosition());
             telemetry.addData("arm Encoder: ", armMotor.getCurrentPosition());
             telemetry.addData("Arm Current:", ((DcMotorEx) armMotor).getCurrent(CurrentUnit.AMPS));
@@ -416,6 +418,7 @@ public class GoBildaSampleTeleOp extends LinearOpMode {
 
             //Increase by one the amount of times the code has run.
             loopCounterVar++;
+             */
         }
     }
 
